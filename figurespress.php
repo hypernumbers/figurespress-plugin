@@ -30,16 +30,38 @@ License: GPL2
 */
 
 /*
-  Include in the code that provides the shortcode
+  include in the code that provides the shortcode
   This means users can insert [fp cells="a10:b15"]
   In their text and it will insert a vixo control
 */
 
-// setup localisation
-  load_plugin_textdomain( 'figurespress-plugin', false, 'figurespress-plugin/languages' );
-
 //include 'includes/figurespress-activate.php';
 include 'includes/debug-logger.php';
 include 'includes/figurespress-spreadsheet-buttons.php';
+include 'includes/figurespress-shortcode.php';
 include 'includes/figurespress-options.php';
+//include 'includes/figurespress-singlesignon.php';
+include 'includes/figurespress-util.php';
+
+// setup localisation
+load_plugin_textdomain( 'figurespress-plugin', 
+                        false, 
+                        'figurespress-plugin/languages' );
+
+// set up the ajax calls
+add_action('wp_ajax_vixo_wordpress_signon', 
+           'gg_fp_single_sign_on_fn');
+
+add_action('wp_ajax_nopriv_vixo_wordpress_signon', 
+           'gg_fp_single_sign_on_fn');  
+
+function gg_fp_single_sign_on_fn () {
+
+    //debug_log ("single signon fired...");
+
+    echo "banjolalia...";
+
+    die ();
+
+}
 ?>

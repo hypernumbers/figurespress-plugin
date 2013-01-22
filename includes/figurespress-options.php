@@ -1,8 +1,10 @@
 <?php
 
 // register some settings
-
 add_action ( 'admin_init', 'gg_fp_register_settings_fn');
+
+// add the admin menus
+add_action ( 'admin_menu', 'gg_fp_add_admin_page_fn' );
 
 function gg_fp_register_settings_fn () {
 	
@@ -23,8 +25,6 @@ function gg_fp_register_settings_fn () {
 						'gg_fp_main' );
 
 }
-
-add_action ( 'admin_menu', 'gg_fp_add_admin_page_fn' );
 
 function gg_fp_add_admin_page_fn ( ) {
 
@@ -53,41 +53,55 @@ function gg_fp_options_page_fn () {
 }
 
 function gg_fp_section_text_fn () {
-	_e ( '<p>' . __('Please give the URL of the Vixo site that you are putting underneath this WordPress 
-	      site, eg', 'figurespress-plugin') .
-	      ' <code>http://example.com</code></p>' .
-	      '<p>' . __('You must save your changes', 'figurespress-plugin') . '</p>');
+	$gg_fp_txt1 = '<p>'
+				  . __('Please give the URL of the Vixo site 
+					    that you are putting underneath this 
+					    WordPress site, eg', 'figurespress-plugin')
+	    		  . ' <code>http://example.com</code></p>'
+	    		  .'<p>'
+	    		  . __('You must save your changes')
+	      		  . '</p>'
+	      		  . '<p style="color:red;font-weight:bold;">'
+	      		  . __ ('Fix so it only works with permalinks' )
+	      		  . '</p>';
+
+	if ( ! gg_fp_has_prettylinks () ) {
+    	$gg_fp_txt2 = "<span style='color:red;font-weight:bold;'>"
+    	              . __( "FiguresPress plugin "
+    	              . "requires prettylinks" )
+    	              . "</span>";
+    }  else {
+    	$gg_fp_txt2 = '';
+    }
+    _e( $gg_fp_txt1 . $gg_fp_txt2 );
 }
 
 function gg_fp_settings_input_fn () {
-	$options = get_option ( 'gg_fp_spreadsheet_site' );
+	$gg_fp_options = get_option ( 'gg_fp_spreadsheet_site' );
 	echo "<input id='gg_fp_text' 
+		  class='regular-text ltr'
 		  name='gg_fp_spreadsheet_site'
 		  type='text'
-	  	  value='{$options}'
+	  	  value='{$gg_fp_options}'
 	  	  />";
 }	
 
 function gg_fp_validate_options_fn ( $input ) {
     // check this is a valid url
-    $clean = array ();
-    $clean['clean']  = esc_url( $input );
-    $url    = filter_var ( $clean['clean'], FILTER_VALIDATE_URL );
-    $tokens = parse_url ( $url );
-    if ( $tokens['scheme'] === "http" || 
-    	 $tokens['scheme'] === "https" ) {
-    	$site = $tokens['scheme'] . "://" . $tokens['host'];
-    	if ( array_key_exists ( 'port', $tokens ) ) {
-    		debug_logger ( "there is a port..." );
-    		debug_logger ( $clean['port'] );
-    		$site = $site . ":" . strval ( $tokens['port'] );
-    	}
-    } else {
-    	$site = '';
+    $gg_fp_cleanurl  = filter_var ( $input, FILTER_VALIDATE_URL );
+    $gg_fp_tokens = parse_url ( $gg_fp_cleanurl );
+    if ( $gg_fp_tokens['scheme'] === "http" || 
+         $gg_fp_tokens['scheme'] === "https" ) {
+    	$gg_fp_site = $gg_fp_tokens['scheme'] 
+    					. '://' . $gg_fp_tokens['host'];
+    	if ( array_key_exists ('port', $gg_fp_tokens ) ) {
+   			$gg_fp_site = $gg_fp_site . ":" 
+   							. strval ( $gg_fp_tokens['port'] );
+    	} 
+	} else {
+    	$gg_fp_site = '';
     }
-	debug_logger ( $tokens );
-	debug_logger ( $site );
-	return $site ;
+    return $gg_fp_site ;
 }
 
 ?>
