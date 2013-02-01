@@ -40,8 +40,8 @@ include 'includes/debug-logger.php';
 include 'includes/figurespress-spreadsheet-buttons.php';
 include 'includes/figurespress-shortcode.php';
 include 'includes/figurespress-options.php';
-//include 'includes/figurespress-singlesignon.php';
 include 'includes/figurespress-util.php';
+include 'includes/figurespress-singlesignon.php';
 
 // setup localisation
 load_plugin_textdomain( 'figurespress-plugin', 
@@ -49,17 +49,20 @@ load_plugin_textdomain( 'figurespress-plugin',
                         'figurespress-plugin/languages' );
 
 // set up the ajax calls
-add_action('wp_ajax_vixo_wordpress_signon', 
+add_action('wp_ajax_vixo_single_sign_on', 
            'gg_fp_single_sign_on_fn');
 
-add_action('wp_ajax_nopriv_vixo_wordpress_signon', 
+add_action('wp_ajax_nopriv_vixo_single_sign_on', 
            'gg_fp_single_sign_on_fn');  
 
 function gg_fp_single_sign_on_fn () {
 
-    //debug_log ("single signon fired...");
+    $hypertag = $_REQUEST['hypertag'];
+    $ivector  = $_REQUEST['ivector'];
 
-    echo "banjolalia...";
+    $gg_fp_signon = new gg_fp_vixo_single_signon();
+    $response = $gg_fp_signon->open_hypertag($hypertag, $ivector);
+    echo("$response");
 
     die ();
 
