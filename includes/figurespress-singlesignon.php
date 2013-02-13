@@ -1,43 +1,134 @@
 <?php
-// Include the classes required to decode and enconde
-// the Erlang Term binaries for single signon
-include 'classes/Bert.php';
-include 'classes/Bert/Atom.php';
-include 'classes/Bert/Decode.php';
-include 'classes/Bert/Decoder.php';
-include 'classes/Bert/Encode.php';
-include 'classes/Bert/Encoder.php';
-include 'classes/Bert/Regex.php';
-include 'classes/Bert/Time.php';
-include 'classes/Bert/Tuple.php';
-include 'classes/Bert/Types.php';
 // Requires php5-mycrypt package installed
+
+require_once 'classes/Bert.php';
 
 class gg_fp_vixo_single_signon
 {
-	// Api Functions
+	// API Functions
+
+	public function make_response($tag) {
+		$current_user = wp_get_current_user();
+		$user = array();
+		$email = $current_user->get('user_email');
+		if ($email == false) {
+			$user['email'] = "";
+		} else {
+			$user['email'] = $email;
+		};
+		$user['groups'] = $this->get_groups($current_user->get('wp_capabilities'));
+		$date = new DateTime();
+		$timestamp = $date->GetTimestamp();
+		$Bert = Bert::encode(Bert::t(Bert::a('signon'), 
+							        $user['email'],
+							        $user['groups'],
+									$tag['URL'],
+									$timestamp));
+		return $this->encode($Bert);
+	}
+
+	public function validate_signon($tag) {
+
+		// Set up the return array
+		$validity = array('is_valid'=>TRUE,
+			               'valid_time'=>TRUE,
+			               'valid_url'=>TRUE);
+
+		// first check the timestamp
+		$date = new DateTime();
+		$timestamp = $date->GetTimestamp() * 100000;
+		$diff = abs($timestamp - $tag['Timestamp']);
+		$drift = get_option('gg_fp_time_drift') * 1000000;
+		if ($diff > $drift) {
+			$validity['is_valid']=FALSE;
+			$validity['vaild_time']=FALSE;
+		}
+
+		// now check the url
+	    $cleanurl  = filter_var($tag['URL'], FILTER_VALIDATE_URL );
+    	$tokens = parse_url($cleanurl);
+		$boundsite = get_option('gg_fp_spreadsheet_site');
+		$site = $tokens['scheme'] . "://" . $tokens['host'] . ":" . $tokens['port'];
+		if ($site != $boundsite) {
+			$validity['is_valid']=FALSE;
+			$validity['valid_url']=FALSE;
+		}
+
+		return $validity;
+	}
 
 	public function open_hypertag($Hypertag, $IVector) {
-		$Cyphertext = base64_decode($Hypertag);
-		$IV = base64_decode($IVector);
-		$Key = "1234567812345678";
-		$Plain = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $Key, $Cyphertext, MCRYPT_MODE_NOFB, $IV);
-		return $Plain;
+		// Erlang and PHP versions of Base64 encoding are different!
+		$Cyphertext = base64_decode(str_replace(" ", "+", $Hypertag));
+		$IV = base64_decode(str_replace(" ", "+", $IVector));
+		$Key = get_option ( 'gg_fp_secret' );
+		// aes_cfb_128 cipher
+		$Plain = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $Key, $Cyphertext, 'ncfb', $IV);
+		$Trimmed = $this->unpad($Plain);
+		$N = strpos($Trimmed, "http");
+		$Return = substr($Trimmed, $N, strlen($Trimmed) - $N);
+		$Timestamp = substr($Trimmed, 0, $N - 1);
+		return array('URL'=>$Return,
+				     'Timestamp'=>$Timestamp);
 	}
 
 	// Internal Functions
-	private function encrypt_term_hex ($Key, $Msg) {
-		return banjo;
+
+	private function encode($Binary) {
+		$Padded = $this->extend($Binary);
+		$Key = get_option ( 'gg_fp_secret' );
+		$Site = get_option('gg_fp_spreadsheet_site');
+		$Page = "/_sync/wordpress/logon/?hypertag=";
+		$Param = "&ivector=";
+		$Size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, 'ncfb');
+	    $IV = mcrypt_create_iv($Size, MCRYPT_DEV_RANDOM);
+		$Crypt = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $Key, $Padded, 'ncfb', $IV);
+		$EncIV = base64_encode($IV);
+		$Encoded = base64_encode($Crypt);
+		return $Site . $Page . $Encoded . $Param . $EncIV;
 	}
 
-	private function decrypt_term_hex ($Key, $Msg) {
-		return "bathosphere";
+	private function get_groups($Groups) {
+		if ($Groups == "") {
+			$gr = "";
+		} else {
+			$gr = array();
+			$n = 0;
+			foreach ($Groups as $key => $value) {
+				$gr[$n] = $key;
+			}
+		}
+		return $gr;
 	}
 
-	private function make_binary ($Term) {
-		return "eejit";
+	// functions to use the same padding schema for the 
+	// aes cfb crypto as used on the Erlang side
+	private function extend($Binary) {
+		$Blocksize = 16;
+		$Len = strlen($Binary);
+		$First = floor($Len / 256);
+		$Second = $Len % 256;
+		$Pad = $Blocksize - (($Len + 2) % $Blocksize);
+		$Binary .= str_repeat(chr(0), $Pad);
+		return chr($First). chr($Second) . $Binary;
 	}
 
+	private function unpad($Binary) {
+		$First = $Binary[0];
+		$Second = $Binary[1];
+		$Length = ord($First) * 256 + ord($Second);
+		return substr($Binary, 2, $Length);
+	}
+
+	private function dump($Msg, $Binary) {
+		echo "<p>" . $Msg . ":";
+		$Len = strlen($Binary);
+		for ($i = 0; $i < $Len; $i = $i + 1) {
+			echo ord($Binary[$i]) . " ";
+		}
+		echo "</p>";
+	}
+ 
 	// Internal test functions
 	private function assert_equal ($Test, $A, $B) {
 		if ($A == $B) {
@@ -49,64 +140,8 @@ class gg_fp_vixo_single_signon
 
 	// unit test functions
 
-	// This test has its binary inputs taken from the equivalent Erlang statements
-	public function test_md5_hashing ()
-	{
-	    $Key = "silly";
-		// Term is {"I think therefore I am",{1337,speak},[["..."]]}
-		// this test uses the binary version of that
-    	$Msg = pack ( "h", implode ( array ( 131,104,3,107,0,22,73,32,116,104,105,110,107,32,116,104,101,114,
-            				 101,102,111,114,101,32,73,32,97,109,104,2,98,0,0,5,57,100,0,5,115,
-            				 112,101,97,107,108,0,0,0,1,108,0,0,0,1,107,0,3,46,46,46,106,106 ) ) );
-    	$Crypt = pack ( "h", implode ( array ( 215,42,66,111,254,17,214,171,202,66,16,178,0,94,33,11,103,28,146,
-            					82,73,142,251,147,233,32,77,199,109,235,190,186,4,43,170,166,203,
-								226,146,239,148,184,219,164,54,151,239,252,240,3,74,220,45,55,168,
-								191,5,74,93,58,57,41,232,10) ) );
-    	$Got = hash_hmac ( "md5", $Msg, $Key);
-	    $this->assert_equal ("MD5_MAC Hash", unpack ( "h", $Crypt ) , unpack ( "h", $Got ) );
-	} 
-
-	// tests that the aes_cfb_128 encryption is identical to the Erlang one
-	public function test_aes_cfb_128_encryption () {
-
-		$PlainT = "1234567812345678";		
-    	$Key    = "abcdefghabcdefgh";
-		$IV     = "12345678abcdefgh";
-		$Expected = implode(array(chr(139), chr(182), chr(94), chr(68), chr(208), chr(173), chr(127), chr(90), chr(14), chr(236), chr(33), chr(230), chr(41), chr(29), chr(210), chr(121)));
-    	
-    	echo "PlainT   is " . $PlainT . "\n";
-    	echo "Key      is " . $Key . "\n";
-		echo "IV       is " . $IV . "\n";
-		echo "Expected is " . $Expected . "\n";
-
-		$Crypt = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $Key, $PlainT, MCRYPT_MODE_NOFB, $IV);
-    	echo "Crypt    is " . $Crypt . "\n";
-
-	    $this->assert_equal ("AES_CFB_128", $Crypt, $Expected);
-
-	}
-
-	public function test_make_binary($string) {
-		$term = '{"I think therefore I am",{1337,speak},[["..."]]}';
-		$expected = "erk";
-		$bin = $this->make_binary($term);
-		$this->assert_equal($bin, $expected);
-		return "binary";
-	}
-
-	public function test_hypertag ()
-	{
-		echo "running hypertag test\n";
-	}
-
 }
 
 $gg_fp_signon = new gg_fp_vixo_single_signon();
-//$gg_fp_signon->test_md5_hashing();
-//$gg_fp_signon->test_aes_cfb_128_encryption();
-//$gg_fp_signon->test_encryption();
-//$gg_fp_signon->test_hypertag();
-//$gg_fp_signon->test_make_binary("banjo");
-
 
 ?>

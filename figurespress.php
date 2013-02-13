@@ -61,9 +61,14 @@ function gg_fp_single_sign_on_fn () {
     $ivector  = $_REQUEST['ivector'];
 
     $gg_fp_signon = new gg_fp_vixo_single_signon();
-    $response = $gg_fp_signon->open_hypertag($hypertag, $ivector);
-    echo("$response");
-
+    $tag = $gg_fp_signon->open_hypertag($hypertag, $ivector);
+    $valid = $gg_fp_signon->validate_signon($tag);
+    if ($valid['is_valid'] == TRUE) {
+      $path = $gg_fp_signon->make_response($tag);
+      header('Location: ' . $path);
+    } else {
+      echo "<p>Invalid attempt at single signon</p>";
+    }
     die ();
 
 }

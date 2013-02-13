@@ -13,6 +13,14 @@ function gg_fp_register_settings_fn () {
 					   'gg_fp_spreadsheet_site',
 					   'gg_fp_validate_options_fn' );
 
+	register_setting ( 'gg_fp_settings',
+					   'gg_fp_secret',
+					   'gg_fp_validate_secret_fn' );
+
+	register_setting ( 'gg_fp_settings',
+					   'gg_fp_time_drift',
+					   'gg_fp_validate_time_drift_fn' );
+
 	add_settings_section ( 'gg_fp_main', 
 					   	   'FiguresPress Settings',
 					   	   'gg_fp_section_text_fn',
@@ -21,6 +29,18 @@ function gg_fp_register_settings_fn () {
 	add_settings_field( 'gg_fp_text_string',
 						'Enter url of Vixo site',
 						'gg_fp_settings_input_fn',
+						'figurespress-plugin',
+						'gg_fp_main' );
+
+	add_settings_field( 'gg_fp_secret_string',
+						'Enter shared secret (emailed to you)',
+						'gg_fp_secret_input_fn',
+						'figurespress-plugin',
+						'gg_fp_main' );
+
+	add_settings_field( 'gg_fp_time_drift_integer',
+						'Allowable time drift for single-signon (15 mins/900 seconds)',
+						'gg_fp_time_drift_fn',
 						'figurespress-plugin',
 						'gg_fp_main' );
 
@@ -86,6 +106,27 @@ function gg_fp_settings_input_fn () {
 	  	  />";
 }	
 
+function gg_fp_secret_input_fn () {
+	$gg_fp_options = get_option ( 'gg_fp_secret' );
+	echo "<input id='gg_fp_secret_text' 
+		  class='regular-text ltr'
+		  name='gg_fp_secret'
+		  type='text'
+	  	  value='{$gg_fp_options}'
+	  	  />";
+}	
+
+function gg_fp_time_drift_fn () {
+	$gg_fp_options = get_option ( 'gg_fp_time_drift' );
+	echo "<input id='gg_fp_time_drift' 
+		  class='regular-text ltr'
+		  name='gg_fp_time_drift'
+		  type='text'
+	  	  value='{$gg_fp_options}'
+	  	  />";
+}	
+
+
 function gg_fp_validate_options_fn ( $input ) {
     // check this is a valid url
     $gg_fp_cleanurl  = filter_var ( $input, FILTER_VALIDATE_URL );
@@ -103,5 +144,14 @@ function gg_fp_validate_options_fn ( $input ) {
     }
     return $gg_fp_site ;
 }
+
+function gg_fp_validate_secret_fn($input) {
+	return $input;
+}
+
+function gg_fp_validate_time_drift_fn($input) {
+	return $input;
+}
+
 
 ?>

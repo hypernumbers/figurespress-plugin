@@ -1,0 +1,1 @@
+curl -H "Content-Type: applicaton/json" -H "Accept: application/json" -X POST http://localhost/wordpress/wp-admin/admin-ajax.php -d "{'action':vixo_wordpress_signon','data':'banjometer'}" --trace -
