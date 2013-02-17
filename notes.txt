@@ -1,3 +1,0 @@
-How to add an 'open spreadsheet' button
-
-http://themergency.com/adding-custom-buttons-to-the-wordpress-content-editor-part-1/

@@ -1,8 +1,5 @@
 <?php
 
-// define the plugin URL
-define ( 'FP_PLUGIN_URL', plugin_dir_url ( __FILE__ ) );
-
 // add the shortcode handler to available shortcodes
 add_shortcode ( 'fp', array ( 'fp_gg_shortcode', 'shortcode') );
 

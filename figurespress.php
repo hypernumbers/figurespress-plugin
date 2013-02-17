@@ -43,12 +43,25 @@ include 'includes/figurespress-options.php';
 include 'includes/figurespress-util.php';
 include 'includes/figurespress-singlesignon.php';
 
+// define the plugin URL
+define ( 'FP_PLUGIN_URL', plugin_dir_url ( __FILE__ ) );
+
 // setup localisation
 load_plugin_textdomain( 'figurespress-plugin', 
                         false, 
                         'figurespress-plugin/languages' );
 
-// set up the ajax calls
+// set up the ajax calls for opening the spreadsheet
+add_action('wp_ajax_vixo_get_sample_permalink', 
+           'gg_fp_get_sample_permalink_fn');
+
+function gg_fp_get_sample_permalink_fn() {
+  $id = $_REQUEST['id'];
+  echo json_encode(gg_fp_get_path($id));
+  die ();
+};
+
+// set up the ajax calls for single signon
 add_action('wp_ajax_vixo_single_sign_on', 
            'gg_fp_single_sign_on_fn');
 
