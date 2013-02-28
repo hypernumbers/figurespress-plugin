@@ -15,11 +15,22 @@ add_filter( 'tiny_mce_version', 'gg_fp_refresh_mce_fn');
 function gg_fp_add_open_spreadsheet_button_fn( $context ) {
 
 	global $post;
+	global $pagenow;
 
-	// Check permissions
-	if ( (! current_user_can('edit_posts') )
-		&& ( ! current_user_can('edit_pages') )
-		|| ! gg_fp_has_prettylinks () ) {
+	// Check we are on the post-new.php page or bail
+	// this stops the spreadsheet appearing on QuickPress malarky...
+	if ($pagenow != 'post-new.php') {
+		return $context;
+	}
+
+	// Now check permissions
+	if ( (! current_user_can('edit_posts') ) 
+		&& ( ! current_user_can('edit_pages') ) ) {
+    	return $context;
+    }
+
+    // Finally check pretty links
+	if (! gg_fp_has_prettylinks () ) {
     	return $context .= "<span style='color:red;font-weight:bold;'>"
     	 . _("FiguresPress plugin requires prettylinks")
     	 . "</span>";
@@ -41,7 +52,8 @@ function gg_fp_add_open_spreadsheet_button_fn( $context ) {
 	 			. "disabled='disabled'>"
 		 	    . "<img src='{$gg_fp_icon}' />" 
 		 	    . __( 'Open Spreadsheet' ) 
-		 	    . "</a>";
+		 	    . "</a>"
+		 	    . "<span id='hn_hidden_permalink'>url is null</span>";
 	} else {
 		$context .= '';
 	}	 
@@ -80,12 +92,12 @@ function gg_fp_register_ss_button_fn($buttons) {
 
 function gg_fp_add_ss_tinymce_plugin_fn($plugin_array) {
 
+	debug_logger("loading tiny mce ss javascript");
 	// get the path of the javascript
 	$gg_fp_js = plugins_url ( 'js/figurespress.tinymce-editor.plugin.js', 
 	 							 dirname ( __FILE__ ) );
 
-	$plugin_array['insertss'] = get_bloginfo('template_url')
-	. $gg_fp_js;
+	$plugin_array['insertss'] = get_bloginfo('template_url') . $gg_fp_js;
 	return $plugin_array;
 
 }
